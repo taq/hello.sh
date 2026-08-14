@@ -1,0 +1,36 @@
+name: attest-keyless
+
+# Lado "keyless" da demo: o GitHub gera uma attestation SLSA assinada via
+# Sigstore (OIDC + Fulcio + Rekor). A raiz de confianca aqui e o GitHub,
+# nao uma chave sua. Compare com o minisign (sign.sh / verify.sh).
+
+on:
+  release:
+    types: [published]     # roda automaticamente ao publicar um release
+
+permissions:
+  id-token: write          # emitir o token OIDC p/ pedir o certificado ao Fulcio
+  contents: read           # ler o repositorio
+  attestations: write      # persistir a attestation na API do GitHub
+
+jobs:
+  attest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # "Build" trivial: o artefato e o proprio hello.sh, nao ha o que compilar.
+      # Num projeto real, aqui voce geraria o .tar.gz e apontaria subject-path p/ ele.
+      - name: Gerar attestation keyless
+        uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: hello.sh
+
+# Depois que o workflow rodar, verifique do seu terminal (precisa de `gh auth login`):
+#
+#   gh attestation verify hello.sh --repo SEU_USUARIO/SEU_REPO
+#
+# Nota: na v4 o attest-build-provenance passou a ser um wrapper sobre
+# actions/attest; ele continua funcionando, mas implementacoes novas podem
+# usar actions/attest diretamente.
